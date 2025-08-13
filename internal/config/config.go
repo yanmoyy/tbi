@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -16,8 +17,13 @@ type DB struct {
 	SSLMode  string
 }
 
+type GraphQL struct {
+	IndexerURLs []string
+}
+
 type Config struct {
-	DB *DB
+	DB      DB
+	GraphQL GraphQL
 }
 
 func Load() *Config {
@@ -26,6 +32,7 @@ func Load() *Config {
 		panic("failed to load .env file")
 	}
 
+	// DB
 	dbHost := ensureEnv("DB_HOST")
 	dbPort := ensureEnv("DB_PORT")
 	dbUser := ensureEnv("DB_USER")
@@ -33,14 +40,21 @@ func Load() *Config {
 	dbName := ensureEnv("DB_NAME")
 	dbSSLMode := ensureEnv("DB_SSL_MODE")
 
+	// GraphQL
+	urls := ensureEnv("GRAPHQL_INDEXER_URLS")
+	indexerURLs := strings.Split(urls, ",")
+
 	return &Config{
-		DB: &DB{
+		DB: DB{
 			Host:     dbHost,
 			Port:     dbPort,
 			User:     dbUser,
 			Password: dbPassword,
 			Name:     dbName,
 			SSLMode:  dbSSLMode,
+		},
+		GraphQL: GraphQL{
+			IndexerURLs: indexerURLs,
 		},
 	}
 }
