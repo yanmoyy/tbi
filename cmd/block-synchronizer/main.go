@@ -1,14 +1,13 @@
 package main
 
 import (
-	"log/slog"
-
 	"github.com/yanmoyy/tbi/internal/config"
-	"github.com/yanmoyy/tbi/internal/db"
+	"github.com/yanmoyy/tbi/internal/database"
+	"github.com/yanmoyy/tbi/internal/graphql"
 )
 
 func main() {
 	cfg := config.Load()
-	dbConn := db.Connect(cfg.DB)
-	slog.Info("connected to db", "db", cfg.DB, "conn", dbConn)
+	_ = database.Connect(cfg.DB)
+	_ = graphql.NewClient(cfg.GraphQL)
 }

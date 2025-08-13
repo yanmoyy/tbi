@@ -1,18 +1,10 @@
 package graphql
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/yanmoyy/tbi/internal/config"
-)
-
-// Endpoint URLs for testing
-const indexerURL = "https://dev-indexer.api.gnoswap.io/graphql/query"
-
-var (
-	ErrFailedAllEndpoints = errors.New("failed to query from all endpoints")
 )
 
 type Client struct {
@@ -30,7 +22,7 @@ func NewClient(cfg config.GraphQL) *Client {
 		clients[url] = graphql.NewClient(url, http.DefaultClient)
 	}
 	return &Client{
-		clients:     clients,
 		indexerURLs: cfg.IndexerURLs,
+		clients:     clients,
 	}
 }

@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"flag"
 	"testing"
 	"time"
 
@@ -10,30 +11,45 @@ import (
 )
 
 func TestSubscribeBlocks(t *testing.T) {
+	flag.Parse()
+	if *offline {
+		t.Skip("Skipping test in offline mode")
+	}
+	if *minBlocks == 0 {
+		t.Skip("Skipping test without minimum blocks")
+	}
 	cfg := config.GraphQL{
-		IndexerURLs: []string{indexerURL, "https://indexer.onbloc.xyz/graphql/query"},
+		IndexerURLs: []string{indexerURL},
 	}
 	c := NewClient(cfg)
 	blockChan := make(chan models.Block)
+	done := make(chan struct{})
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	blockCnt := 0
-	completeCh := make(chan struct{})
-	c.SubscribeBlocks(ctx, blockChan, completeCh)
+	defer func() {
+		if blockCnt < *minBlocks {
+			t.Errorf("Expected at least %d blocks, received %d", *minBlocks, blockCnt)
+		}
+	}()
+
+	// Start SubscribeBlocks
+	c.SubscribeBlocks(ctx, blockChan, done)
+
 	for {
 		select {
 		case <-ctx.Done():
-			t.Error("timeout")
 			return
-		case <-completeCh:
-			if blockCnt == 0 {
-				t.Error("no blocks received")
-			}
+		case <-done:
 			return
 		case block := <-blockChan:
-			blockCnt += 1
-			t.Logf("block #%d: %+v", blockCnt, block)
+			blockCnt++
+			t.Logf("Block #%d: %+v", blockCnt, block)
+			if blockCnt >= *minBlocks {
+				return
+			}
 		}
 	}
 }

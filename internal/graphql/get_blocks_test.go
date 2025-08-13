@@ -2,12 +2,17 @@ package graphql
 
 import (
 	"context"
+	"flag"
 	"testing"
 
 	"github.com/yanmoyy/tbi/internal/config"
 )
 
 func TestGetBlocks(t *testing.T) {
+	flag.Parse()
+	if *offline {
+		t.Skip("Skipping test in offline mode")
+	}
 	cfg := config.GraphQL{
 		IndexerURLs: []string{indexerURL},
 	}

@@ -19,9 +19,8 @@ type subscribeBlockQuery struct {
 }
 
 // subscribe to new blocks
-func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- models.Block, completeCh chan<- struct{}) {
+func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- models.Block, done chan<- struct{}) {
 	go func() {
-		defer close(completeCh)
 		for _, url := range c.indexerURLs {
 			wsURL := toWsURL(url)
 			slog.Info("subscribing to blocks", "url", wsURL)
@@ -30,6 +29,7 @@ func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- models.Bl
 				slog.Error("subscribeToURL", "err", err)
 			}
 		}
+		close(done)
 	}()
 }
 
