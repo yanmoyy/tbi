@@ -1,4 +1,4 @@
-package graphql
+package indexer
 
 import (
 	"context"
@@ -12,9 +12,9 @@ type getTransactionsQuery struct {
 }
 
 type GetTransactionsFilter struct {
-	BlockHeightGT int64
-	BlockHeightLT int64
-	IndexLT       int64
+	BlockHeightGT int
+	BlockHeightLT int
+	IndexLT       int
 }
 
 func (c *Client) GetTransactions(ctx context.Context, filter GetTransactionsFilter) ([]models.Transaction, error) {
@@ -41,16 +41,7 @@ func (c *Client) GetTransactions(ctx context.Context, filter GetTransactionsFilt
 			slog.Error("no transactions found", "url", url)
 			continue
 		}
-		return convert(q.GetTransactions, transactionToModel), nil
+		return convert(q.GetTransactions, transactionConvertor)
 	}
 	return nil, ErrFailedAllEndpoints
-}
-
-func transactionToModel(t transaction) models.Transaction {
-	return models.Transaction{
-		Hash:        t.Hash,
-		Success:     t.Success,
-		BlockHeight: t.BlockHeight,
-		GasUsed:     t.GasUsed,
-	}
 }

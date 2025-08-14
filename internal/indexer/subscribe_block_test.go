@@ -1,4 +1,4 @@
-package graphql
+package indexer
 
 import (
 	"context"
@@ -8,13 +8,13 @@ import (
 
 	"github.com/yanmoyy/tbi/internal/config"
 	"github.com/yanmoyy/tbi/internal/models"
+	"github.com/yanmoyy/tbi/internal/test"
 )
 
+var minBlocks = flag.Int("min-blocks", 0, "Minimum number of blocks to receive before exiting")
+
 func TestSubscribeBlocks(t *testing.T) {
-	flag.Parse()
-	if *offline {
-		t.Skip("Skipping test in offline mode")
-	}
+	test.CheckIndexerFlag(t)
 	if *minBlocks == 0 {
 		t.Skip("Skipping test without minimum blocks")
 	}

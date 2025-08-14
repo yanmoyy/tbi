@@ -1,4 +1,4 @@
-package graphql
+package indexer
 
 import (
 	"net/http"

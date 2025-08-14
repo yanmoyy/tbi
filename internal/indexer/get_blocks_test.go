@@ -1,18 +1,15 @@
-package graphql
+package indexer
 
 import (
 	"context"
-	"flag"
 	"testing"
 
 	"github.com/yanmoyy/tbi/internal/config"
+	"github.com/yanmoyy/tbi/internal/test"
 )
 
 func TestGetBlocks(t *testing.T) {
-	flag.Parse()
-	if *offline {
-		t.Skip("Skipping test in offline mode")
-	}
+	test.CheckIndexerFlag(t)
 	cfg := config.GraphQL{
 		IndexerURLs: []string{indexerURL},
 	}

@@ -1,4 +1,4 @@
-package graphql
+package indexer
 
 import (
 	"context"
@@ -12,8 +12,8 @@ type getBlockQuery struct {
 }
 
 type GetBlocksFilter struct {
-	HeightGT int64
-	HeightLT int64
+	HeightGT int
+	HeightLT int
 }
 
 func (c *Client) GetBlocks(ctx context.Context, filter GetBlocksFilter) ([]models.Block, error) {
@@ -39,20 +39,8 @@ func (c *Client) GetBlocks(ctx context.Context, filter GetBlocksFilter) ([]model
 			slog.Error("no blocks found", "url", url)
 			continue
 		}
-		return convert(q.GetBlocks, blockToModel), nil
+		return convert(q.GetBlocks, blockConvertor)
 	}
 
 	return nil, ErrFailedAllEndpoints
-}
-
-func blockToModel(b block) models.Block { return b.toModel() }
-
-func (b *block) toModel() models.Block {
-	return models.Block{
-		Hash:     b.Hash,
-		Height:   b.Height,
-		Time:     b.Time,
-		NumTxs:   b.NumTxs,
-		TotalTxs: b.TotalTxs,
-	}
 }
