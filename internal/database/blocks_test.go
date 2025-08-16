@@ -7,14 +7,15 @@ import (
 	"github.com/yanmoyy/tbi/internal/models"
 )
 
-func TestGetLastHeight(t *testing.T) {
+func TestGetLastBlock(t *testing.T) {
 	c := getTestClient(t)
 
 	type input struct {
 		blocks []models.Block
 	}
 	type expected struct {
-		height int32
+		height   int
+		totalTxs int
 	}
 	tester := func(t *testing.T, i input, e expected) {
 		err := c.ClearAll()
@@ -23,9 +24,10 @@ func TestGetLastHeight(t *testing.T) {
 			err = c.CreateBlocks(i.blocks)
 			require.NoError(t, err)
 		}
-		height, err := c.GetLastHeight()
+		height, totalTxs, err := c.GetLastBlockInfo()
 		require.NoError(t, err)
 		require.Equal(t, e.height, height)
+		require.Equal(t, e.totalTxs, totalTxs)
 	}
 
 	t.Run("normal case", func(t *testing.T) {
@@ -36,12 +38,14 @@ func TestGetLastHeight(t *testing.T) {
 					Height: 0,
 				},
 				{
-					Hash:   "hash2",
-					Height: 1,
+					Hash:     "hash2",
+					Height:   1,
+					TotalTxs: 1,
 				},
 			},
 		}, expected{
-			height: 1,
+			height:   1,
+			totalTxs: 1,
 		})
 	})
 	t.Run("block missed", func(t *testing.T) {
@@ -52,19 +56,22 @@ func TestGetLastHeight(t *testing.T) {
 					Height: 0,
 				},
 				{
-					Hash:   "hash2",
-					Height: 2,
+					Hash:     "hash2",
+					Height:   2,
+					TotalTxs: 1,
 				},
 			},
 		}, expected{
-			height: 2, // NOTE: In this version, we don't know data is corrupted or not.
+			height:   2, // NOTE: In this version, we don't know data is corrupted or not.
+			totalTxs: 1,
 		})
 	})
 	t.Run("block empty", func(t *testing.T) {
 		tester(t, input{
 			blocks: []models.Block{},
 		}, expected{
-			height: -1,
+			height:   -1,
+			totalTxs: 0,
 		})
 	})
 }

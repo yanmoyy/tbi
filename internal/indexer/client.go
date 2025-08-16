@@ -1,10 +1,16 @@
 package indexer
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/yanmoyy/tbi/internal/config"
+)
+
+var (
+	ErrFailedAllEndpoints = errors.New("failed to query from all endpoints")
 )
 
 type Client struct {
@@ -18,11 +24,21 @@ func NewClient(cfg config.GraphQL) *Client {
 	}
 	l := len(cfg.IndexerURLs)
 	clients := make(map[string]*graphql.Client, l)
-	for _, url := range cfg.IndexerURLs {
+	queryURLs := make([]string, l)
+	for i, url := range cfg.IndexerURLs {
+		url = getQueryURL(url)
 		clients[url] = graphql.NewClient(url, http.DefaultClient)
+		queryURLs[i] = url
 	}
 	return &Client{
-		indexerURLs: cfg.IndexerURLs,
+		indexerURLs: queryURLs,
 		clients:     clients,
 	}
+}
+
+func getQueryURL(url string) string {
+	if strings.HasSuffix(url, "/query") {
+		return url
+	}
+	return url + "/query"
 }

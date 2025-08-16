@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/yanmoyy/tbi/internal/config"
-	"github.com/yanmoyy/tbi/internal/models"
 	"github.com/yanmoyy/tbi/internal/test"
 )
 
@@ -16,13 +15,13 @@ var minBlocks = flag.Int("min-blocks", 0, "Minimum number of blocks to receive b
 func TestSubscribeBlocks(t *testing.T) {
 	test.CheckIndexerFlag(t)
 	if *minBlocks == 0 {
-		t.Skip("Skipping test without minimum blocks")
+		t.Skip("Skipping test without min-blocks")
 	}
 	cfg := config.GraphQL{
 		IndexerURLs: []string{indexerURL},
 	}
 	c := NewClient(cfg)
-	blockChan := make(chan models.Block)
+	blockChan := make(chan Block)
 	done := make(chan struct{})
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

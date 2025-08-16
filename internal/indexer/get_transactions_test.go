@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yanmoyy/tbi/internal/config"
 	"github.com/yanmoyy/tbi/internal/test"
 )
@@ -14,13 +15,9 @@ func TestGetTransactions(t *testing.T) {
 		IndexerURLs: []string{indexerURL},
 	}
 	c := NewClient(cfg)
-	transactions, err := c.GetTransactions(context.Background(), GetTransactionsFilter{
-		BlockHeightGT: 0,
-		BlockHeightLT: 2000,
-		IndexLT:       1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("total transactions: %d", len(transactions))
+	start := TxIndex{BlockHeight: 0, Index: 0}
+	end := TxIndex{BlockHeight: 1, Index: 1}
+	resp, err := c.GetTransactions(context.Background(), start, end)
+	require.NoError(t, err)
+	t.Logf("total transactions: %d", len(resp.Transactions))
 }

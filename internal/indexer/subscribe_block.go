@@ -9,17 +9,16 @@ import (
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/hasura/go-graphql-client/pkg/jsonutil"
-	"github.com/yanmoyy/tbi/internal/models"
 )
 
 const timeoutPerURL = time.Second * 5
 
 type subscribeBlockQuery struct {
-	GetBlocks block `graphql:" getBlocks(where: {})"`
+	GetBlocks Block `graphql:" getBlocks(where: {})"`
 }
 
 // subscribe to new blocks
-func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- models.Block, done chan<- struct{}) {
+func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- Block, done chan<- struct{}) {
 	go func() {
 		for _, url := range c.indexerURLs {
 			wsURL := toWsURL(url)
@@ -34,7 +33,7 @@ func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- models.Bl
 }
 
 // subscribeToURL handles subscription to blocks for a single URL.
-func (c *Client) subscribeToURL(ctx context.Context, url string, blockCh chan<- models.Block) error {
+func (c *Client) subscribeToURL(ctx context.Context, url string, blockCh chan<- Block) error {
 	urlCtx, cancel := context.WithTimeout(context.Background(), timeoutPerURL)
 	defer cancel()
 
@@ -78,7 +77,7 @@ func (c *Client) subscribeToURL(ctx context.Context, url string, blockCh chan<- 
 			}
 			urlCtx, cancel = context.WithTimeout(context.Background(), timeoutPerURL)
 			defer cancel()
-			blockCh <- q.GetBlocks.toModel()
+			blockCh <- q.GetBlocks
 		}
 	}
 }

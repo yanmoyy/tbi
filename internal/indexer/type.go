@@ -1,10 +1,13 @@
 package indexer
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/yanmoyy/tbi/internal/models"
 )
 
-type block struct {
+type Block struct {
 	Hash     string    `graphql:"hash"`
 	Height   int32     `graphql:"height"`
 	Time     time.Time `graphql:"time"`
@@ -12,7 +15,17 @@ type block struct {
 	TotalTxs int32     `graphql:"total_txs"`
 }
 
-type transaction struct {
+func (b *Block) ToModel() models.Block {
+	return models.Block{
+		Hash:     b.Hash,
+		Height:   int(b.Height),
+		Time:     b.Time,
+		NumTxs:   int(b.NumTxs),
+		TotalTxs: int(b.TotalTxs),
+	}
+}
+
+type Transaction struct {
 	Index       int32                `graphql:"index"`
 	Hash        string               `graphql:"hash"`
 	Success     bool                 `graphql:"success"`
@@ -23,6 +36,34 @@ type transaction struct {
 	GasFee      gasFee               `graphql:"gas_fee"`
 	Messages    []transactionMessage `graphql:"messages"`
 	Response    transactionResponse  `graphql:"response"`
+}
+
+// error reason: need to use json.Marshal
+func (t *Transaction) ToModel() (models.Transaction, error) {
+	gasFeeJson, err := json.Marshal(t.GasFee)
+	if err != nil {
+		return models.Transaction{}, err
+	}
+	messagesJson, err := json.Marshal(t.Messages)
+	if err != nil {
+		return models.Transaction{}, err
+	}
+	responseJson, err := json.Marshal(t.Response)
+	if err != nil {
+		return models.Transaction{}, err
+	}
+	return models.Transaction{
+		Index:       int(t.Index),
+		Hash:        t.Hash,
+		Success:     t.Success,
+		BlockHeight: int(t.BlockHeight),
+		GasWanted:   int(t.GasWanted),
+		GasUsed:     int(t.GasUsed),
+		Memo:        t.Memo,
+		GasFee:      gasFeeJson,
+		Messages:    messagesJson,
+		Response:    responseJson,
+	}, nil
 }
 
 type gasFee struct {

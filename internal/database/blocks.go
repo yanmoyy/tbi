@@ -1,8 +1,6 @@
 package database
 
 import (
-	"fmt"
-
 	"github.com/yanmoyy/tbi/internal/models"
 	"gorm.io/gorm"
 )
@@ -11,16 +9,16 @@ func (c *Client) CreateBlocks(blocks []models.Block) error {
 	return c.db.Create(blocks).Error
 }
 
-func (c *Client) GetLastHeight() (int32, error) {
+func (c *Client) GetLastBlockInfo() (height, totalTxs int, err error) {
 	var lastBlock models.Block
-	err := c.db.Order("height DESC").First(&lastBlock).Error
+	err = c.db.Order("height DESC").First(&lastBlock).Error
 	if err == gorm.ErrRecordNotFound {
-		return -1, nil
+		return -1, 0, nil
 	}
 	if err != nil {
-		return -1, fmt.Errorf("failed to get last block: %w", err)
+		return -1, 0, err
 	}
-	return lastBlock.Height, nil
+	return lastBlock.Height, lastBlock.TotalTxs, nil
 }
 
 // Deprecated: ignore data corruption

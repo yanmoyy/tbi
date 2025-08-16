@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/yanmoyy/tbi/internal/config"
 	"github.com/yanmoyy/tbi/internal/test"
 )
@@ -14,18 +15,13 @@ func TestGetBlocks(t *testing.T) {
 		IndexerURLs: []string{indexerURL},
 	}
 	c := NewClient(cfg)
-	blocks, err := c.GetBlocks(context.Background(), GetBlocksFilter{
-		HeightGT: 0,
-		HeightLT: 10,
-	})
+	resp, err := c.GetBlocks(context.Background(), 0, 10)
+	require.NoError(t, err)
+	require.Equal(t, 10, len(resp.Blocks))
 
-	for _, b := range blocks {
-		if b.Height == 0 || b.Height > 10 {
-			t.Fatal("bad block height")
+	for _, b := range resp.Blocks {
+		if b.Height < 0 || b.Height >= 10 {
+			t.Fatal("bad block height", b.Height)
 		}
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", blocks)
 }

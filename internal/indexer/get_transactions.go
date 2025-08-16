@@ -2,46 +2,66 @@ package indexer
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 
 	"github.com/yanmoyy/tbi/internal/models"
 )
 
-type getTransactionsQuery struct {
-	GetTransactions []transaction `graphql:"getTransactions(where: { block_height: { gt: $height_gt, lt: $height_lt }, index: { lt: $index_lt } })"`
+type getTransactionsResp struct {
+	Transactions []Transaction `graphql:"getTransactions"`
 }
 
-type GetTransactionsFilter struct {
-	BlockHeightGT int
-	BlockHeightLT int
-	IndexLT       int
+type GetTransactionsVars struct {
+	StartHeight int
+	EndHeight   int
+	StartIndex  int
+	EndIndex    int
 }
 
-func (c *Client) GetTransactions(ctx context.Context, filter GetTransactionsFilter) ([]models.Transaction, error) {
-
-	var q getTransactionsQuery
+func (c *Client) GetTransactions(ctx context.Context, vars GetTransactionsVars) (getTransactionsResp, error) {
+	var resp getTransactionsResp
 
 	variables := map[string]any{
-		"height_gt": filter.BlockHeightGT,
-		"height_lt": filter.BlockHeightLT,
-		"index_lt":  filter.IndexLT,
+		"height_eq": vars.StartHeight,
+		"height_gt": vars.StartHeight,
+		"height_lt": vars.EndHeight,
+		"index_eq":  vars.StartIndex,
+		"index_gt":  vars.StartIndex,
+		"index_lt":  vars.EndIndex,
 	}
 
+	err := c.queryTransactions(ctx, &resp, variables)
+	if err != nil {
+		return getTransactionsResp{}, err
+	}
+	return resp, err
+}
+
+func (c *Client) queryTransactions(ctx context.Context, resp *getTransactionsResp, variables map[string]any) error {
 	for _, url := range c.indexerURLs {
 		client, ok := c.clients[url]
 		if !ok {
-			continue
+			return fmt.Errorf("client not found: %s", url)
 		}
-		err := client.Query(ctx, &q, variables)
+		err := client.Exec(ctx, getTransactionsGQL, resp, variables)
 		if err != nil {
-			slog.Error("failed to query transactions", "err", err, "url", url)
-			continue
+			return fmt.Errorf("client.Query: %w", err)
 		}
-		if len(q.GetTransactions) == 0 {
-			slog.Error("no transactions found", "url", url)
-			continue
+		if len(resp.Transactions) > 0 {
+			return nil
 		}
-		return convert(q.GetTransactions, transactionConvertor)
 	}
-	return nil, ErrFailedAllEndpoints
+	return ErrFailedAllEndpoints
+}
+
+func (q *getTransactionsResp) ToModel() ([]models.Transaction, error) {
+	result := make([]models.Transaction, len(q.Transactions))
+	for i, t := range q.Transactions {
+		model, err := t.ToModel()
+		if err != nil {
+			return nil, err
+		}
+		result[i] = model
+	}
+	return result, nil
 }
