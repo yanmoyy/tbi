@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	blockBatchSize  = 2000
-	txBatchSize     = 20
-	backfillTimeout = time.Second * 60
+	blockBatchSize   = 2000
+	txBatchSize      = 20
+	backfillTimeout  = time.Second * 60
+	maxSubscribeWait = time.Second * 5
 )
 
 type Service struct {
@@ -31,19 +32,82 @@ func New(client *indexer.Client, db *database.Client, sqsClient *sqs.Client) *Se
 	}
 }
 
-func (s *Service) RunBackfill() {
-	lastHeight, totalTxs, err := s.db.GetLastBlockInfo()
+func (s *Service) Run(ctx context.Context) error {
+	lastHeight, lastTotalTxs, err := s.db.GetLastBlockInfo()
 	if err != nil {
-		slog.Error("GetLastHeight", "err", err)
+		return fmt.Errorf("GetLastHeight: %w", err)
 	}
-	slog.Info("Last height", "height", lastHeight)
-	// start to fetch block
-	ctx, cancel := context.WithTimeout(context.Background(), backfillTimeout)
+
+	firstHeight, err := s.startSubscription(ctx)
+	if err != nil {
+		return fmt.Errorf("startSubscription: %w", err)
+	}
+
+	// start to backfill
+	ctxB, cancel := context.WithTimeout(ctx, backfillTimeout)
 	defer cancel()
 
-	err = s.tryFetchAll(ctx, lastHeight, totalTxs)
+	err = s.tryFetchAll(ctxB, lastHeight+1, firstHeight, lastTotalTxs)
 	if err != nil {
-		slog.Error("tryFetchAll", "err", err)
+		return fmt.Errorf("tryFetchAll: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) startSubscription(ctx context.Context) (int, error) {
+	blockCh := make(chan indexer.Block)
+	done := make(chan struct{})
+
+	ctxS, cancel := context.WithCancel(ctx)
+	s.indexer.SubscribeBlocks(ctxS, blockCh, done)
+	heightChan := make(chan int)
+	initialized := false
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case block := <-blockCh:
+				slog.Info("Block received", "height", block.Height)
+				if !initialized {
+					heightChan <- int(block.Height)
+					initialized = true
+				}
+				err := s.db.CreateBlock(block.ToModel())
+				if err != nil {
+					slog.Error("CreateBlock", "err", err)
+					cancel()
+					return
+				}
+				if block.NumTxs > 0 {
+					// process transactions event
+					varsList := calculateGetTransactionsVarsList([]indexer.Block{block}, txBatchSize)
+					for _, vars := range varsList {
+						_, err := s.syncTransactions(ctx,
+							vars.StartHeight,
+							vars.EndHeight,
+							vars.StartIndex,
+							vars.EndIndex,
+						)
+						if err != nil {
+							slog.Error("syncTransactions", "err", err)
+							cancel()
+							return
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return -1, ctx.Err()
+	case firstHeight := <-heightChan:
+		return firstHeight, nil
+	case <-time.After(maxSubscribeWait):
+		return -1, fmt.Errorf("timeout: maxSubscribeWait")
 	}
 }
 
@@ -52,10 +116,10 @@ type counter struct {
 	Txs    int
 }
 
-func (s *Service) tryFetchAll(ctx context.Context, lastHeight, totalTxs int) error {
+func (s *Service) tryFetchAll(ctx context.Context, startHeight, endHeight, totalTxs int) error {
 	var st, en int
-	st = lastHeight + 1
-	en = st + blockBatchSize
+	st = startHeight
+	en = min(st+blockBatchSize, endHeight)
 
 	counter := counter{
 		Blocks: 0,
@@ -94,7 +158,7 @@ func (s *Service) tryFetchAll(ctx context.Context, lastHeight, totalTxs int) err
 				}
 				varsList := calculateGetTransactionsVarsList(blocks, txBatchSize)
 				for _, vars := range varsList {
-					n, err := s.fetchAndSaveTransactions(ctx,
+					n, err := s.syncTransactions(ctx,
 						vars.StartHeight,
 						vars.EndHeight,
 						vars.StartIndex,
@@ -109,7 +173,7 @@ func (s *Service) tryFetchAll(ctx context.Context, lastHeight, totalTxs int) err
 				if st == 0 { // NOTE: avoid first block
 					st = 1
 				}
-				n, err := s.fetchAndSaveTransactions(ctx, st, en, 0, txsCount)
+				n, err := s.syncTransactions(ctx, st, en, 0, txsCount)
 				if err != nil {
 					return fmt.Errorf("fetchAndSaveTransactions: %w", err)
 				}
@@ -121,13 +185,16 @@ func (s *Service) tryFetchAll(ctx context.Context, lastHeight, totalTxs int) err
 		}
 		st = en
 		en += blockBatchSize
+		if en > endHeight {
+			break
+		}
 	}
 
 	slog.Info("Synchronized blocks", "blocks", counter.Blocks, "txs", counter.Txs)
 	return nil
 }
 
-func (s *Service) fetchAndSaveTransactions(ctx context.Context,
+func (s *Service) syncTransactions(ctx context.Context,
 	st, en, startIndex, endIndex int) (int, error) {
 	resp, err := s.indexer.GetTransactions(ctx, indexer.GetTransactionsVars{
 		StartHeight: st,
@@ -143,6 +210,14 @@ func (s *Service) fetchAndSaveTransactions(ctx context.Context,
 	if n == 0 {
 		return 0, nil
 	}
+
+	// process transactions (handle events with SQS)
+	s.processEvents(ctx, resp.Transactions)
+	if err != nil {
+		return n, fmt.Errorf("processTransactions: %w", err)
+	}
+
+	// save to DB
 	transactions, err := resp.ToModel()
 	if err != nil {
 		return n, err
@@ -152,4 +227,20 @@ func (s *Service) fetchAndSaveTransactions(ctx context.Context,
 		return n, err
 	}
 	return n, nil
+}
+
+func (s *Service) processEvents(ctx context.Context, transactions []indexer.Transaction) {
+	for _, tx := range transactions {
+		for _, event := range tx.Response.Events {
+			if event.GnoEvent.Type != "Transfer" {
+				continue
+			}
+			err := validateTransferEvent(event.GnoEvent)
+			if err != nil {
+				slog.Error("validateTransferEvent", "err", err)
+				continue
+			}
+			slog.Info("Transfer Event found! sending to SQS")
+		}
+	}
 }

@@ -18,12 +18,12 @@ type subscribeBlockQuery struct {
 }
 
 // subscribe to new blocks
-func (c *Client) SubscribeBlocks(ctx context.Context, blockChan chan<- Block, done chan<- struct{}) {
+func (c *Client) SubscribeBlocks(ctx context.Context, blockCh chan<- Block, done chan<- struct{}) {
 	go func() {
 		for _, url := range c.indexerURLs {
 			wsURL := toWsURL(url)
 			slog.Info("subscribing to blocks", "url", wsURL)
-			err := c.subscribeToURL(ctx, wsURL, blockChan)
+			err := c.subscribeToURL(ctx, wsURL, blockCh)
 			if err != nil {
 				slog.Error("subscribeToURL", "err", err)
 			}

@@ -15,9 +15,12 @@ func TestGetTransactions(t *testing.T) {
 		IndexerURLs: []string{indexerURL},
 	}
 	c := NewClient(cfg)
-	start := TxIndex{BlockHeight: 0, Index: 0}
-	end := TxIndex{BlockHeight: 1, Index: 1}
-	resp, err := c.GetTransactions(context.Background(), start, end)
+	resp, err := c.GetTransactions(context.Background(), GetTransactionsVars{
+		StartHeight: 0,
+		EndHeight:   1000,
+		StartIndex:  0,
+		EndIndex:    100,
+	})
 	require.NoError(t, err)
 	t.Logf("total transactions: %d", len(resp.Transactions))
 }

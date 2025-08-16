@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/yanmoyy/tbi/internal/config"
 	"github.com/yanmoyy/tbi/internal/database"
@@ -18,8 +22,17 @@ func main() {
 	db := database.NewClient(cfg.DB)
 	graphql := indexer.NewClient(cfg.GraphQL)
 	s := synchronizer.New(graphql, db, nil)
-	slog.Info("block-synchronizer Initialized!")
-	slog.Info("Starting backfill...")
-	s.RunBackfill()
-	slog.Info("Backfill finished!")
+	ctx := context.Background()
+
+	slog.Info("block-synchronizer Started...")
+	defer slog.Info("block-synchronizer Finished!")
+	err := s.Run(ctx)
+	if err != nil {
+		slog.Error("Run", "err", err)
+		return
+	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+	<-done
 }

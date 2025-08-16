@@ -9,6 +9,10 @@ func (c *Client) CreateBlocks(blocks []models.Block) error {
 	return c.db.Create(blocks).Error
 }
 
+func (c *Client) CreateBlock(block models.Block) error {
+	return c.db.Create(&block).Error
+}
+
 func (c *Client) GetLastBlockInfo() (height, totalTxs int, err error) {
 	var lastBlock models.Block
 	err = c.db.Order("height DESC").First(&lastBlock).Error

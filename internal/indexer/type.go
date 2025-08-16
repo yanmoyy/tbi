@@ -93,7 +93,7 @@ type transactionResponse struct {
 }
 
 type responseEvent struct {
-	GNOEvent gnoEvent `graphql:"... on GnoEvent"`
+	GnoEvent GnoEvent `graphql:"... on GnoEvent"`
 }
 
 // message values
@@ -138,14 +138,14 @@ type packageFile struct {
 }
 
 // response events
-type gnoEvent struct {
+type GnoEvent struct {
 	Type    string         `graphql:"type"`
 	Func    string         `graphql:"func"`
 	PkgPath string         `graphql:"pkg_path"`
-	Attrs   []gnoEventAttr `graphql:"attrs"`
+	Attrs   []GnoEventAttr `graphql:"attrs"`
 }
 
-type gnoEventAttr struct {
+type GnoEventAttr struct {
 	Key   string `graphql:"key"`
 	Value string `graphql:"value"`
 }
