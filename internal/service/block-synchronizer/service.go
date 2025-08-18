@@ -2,13 +2,14 @@ package synchronizer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/yanmoyy/tbi/internal/database"
 	"github.com/yanmoyy/tbi/internal/indexer"
+	"github.com/yanmoyy/tbi/internal/sqs"
 )
 
 const (
@@ -24,16 +25,16 @@ type Service struct {
 	sqs     *sqs.Client
 }
 
-func New(client *indexer.Client, db *database.Client, sqsClient *sqs.Client) *Service {
+func New(indexer *indexer.Client, db *database.Client, producer *sqs.Client) *Service {
 	return &Service{
-		indexer: client,
+		indexer: indexer,
 		db:      db,
-		sqs:     sqsClient,
+		sqs:     producer,
 	}
 }
 
-func (s *Service) Run(ctx context.Context) error {
-	lastHeight, lastTotalTxs, err := s.db.GetLastBlockInfo()
+func (s *Service) RunBackFill(ctx context.Context) error {
+	lastHeight, lastTotalTxs, err := s.db.GetLastBlockInfo(ctx)
 	if err != nil {
 		return fmt.Errorf("GetLastHeight: %w", err)
 	}
@@ -74,7 +75,7 @@ func (s *Service) startSubscription(ctx context.Context) (int, error) {
 					heightChan <- int(block.Height)
 					initialized = true
 				}
-				err := s.db.CreateBlock(block.ToModel())
+				err := s.db.CreateBlock(ctx, block.ToModel())
 				if err != nil {
 					slog.Error("CreateBlock", "err", err)
 					cancel()
@@ -140,7 +141,7 @@ func (s *Service) tryFetchAll(ctx context.Context, startHeight, endHeight, total
 			break
 		}
 
-		err = s.db.CreateBlocks(resp.ToModel())
+		err = s.db.CreateBlockList(ctx, resp.ToModel())
 		if err != nil {
 			return fmt.Errorf("CreateBlocks: %w", err)
 		}
@@ -212,17 +213,14 @@ func (s *Service) syncTransactions(ctx context.Context,
 	}
 
 	// process transactions (handle events with SQS)
-	s.processEvents(ctx, resp.Transactions)
-	if err != nil {
-		return n, fmt.Errorf("processTransactions: %w", err)
-	}
+	go s.processEvents(ctx, resp.Transactions)
 
 	// save to DB
 	transactions, err := resp.ToModel()
 	if err != nil {
 		return n, err
 	}
-	err = s.db.CreateTransactions(transactions)
+	err = s.db.CreateTransactionList(ctx, transactions)
 	if err != nil {
 		return n, err
 	}
@@ -235,12 +233,26 @@ func (s *Service) processEvents(ctx context.Context, transactions []indexer.Tran
 			if event.GnoEvent.Type != "Transfer" {
 				continue
 			}
-			err := validateTransferEvent(event.GnoEvent)
-			if err != nil {
-				slog.Error("validateTransferEvent", "err", err)
-				continue
-			}
 			slog.Info("Transfer Event found! sending to SQS")
+
+			evt, err := processEvent(event.GnoEvent)
+			if err != nil {
+				slog.Error("processEvent", "err", err)
+				break
+			}
+			msgBody, err := json.Marshal(evt)
+			if err != nil {
+				slog.Error("json.Marshal", "err", err)
+				break
+			}
+			err = s.sqs.SendMessage(ctx, sqs.Message{
+				Body:      string(msgBody),
+				CreatedAt: time.Now(),
+			})
+			if err != nil {
+				slog.Error("SendMessage", "err", err)
+				break
+			}
 		}
 	}
 }

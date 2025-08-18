@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -36,11 +37,16 @@ func TestCreateTranscations(t *testing.T) {
 		},
 	}
 
-	err := c.CreateBlocks(blocks)
-	require.NoError(t, err)
-	err = c.CreateTransactions(transactions)
+	ctx := context.Background()
+
+	err := c.ClearTransactions()
 	require.NoError(t, err)
 
-	err = c.ClearAll()
+	err = c.CreateBlockList(ctx, blocks)
+	require.NoError(t, err)
+	err = c.CreateTransactionList(ctx, transactions)
+	require.NoError(t, err)
+
+	err = c.ClearTransactions()
 	require.NoError(t, err)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -11,28 +10,34 @@ import (
 	"github.com/yanmoyy/tbi/internal/config"
 	"github.com/yanmoyy/tbi/internal/database"
 	"github.com/yanmoyy/tbi/internal/indexer"
+	"github.com/yanmoyy/tbi/internal/logging"
 	synchronizer "github.com/yanmoyy/tbi/internal/service/block-synchronizer"
+	"github.com/yanmoyy/tbi/internal/sqs"
 )
 
 func main() {
-	fmt.Println()
-	slog.Info("##### block-synchronizer #####")
-	fmt.Println()
+	log := logging.NewLogger("block-synchronizer")
 	cfg := config.Load()
+
 	db := database.NewClient(cfg.DB)
 	graphql := indexer.NewClient(cfg.GraphQL)
-	s := synchronizer.New(graphql, db, nil)
-	ctx := context.Background()
 
-	slog.Info("block-synchronizer Started...")
-	defer slog.Info("block-synchronizer Finished!")
-	err := s.Run(ctx)
+	ctx := context.Background()
+	sqs := sqs.NewClient(cfg.SQS)
+
+	service := synchronizer.New(graphql, db, sqs)
+
+	log.Start()
+
+	err := service.RunBackFill(ctx)
 	if err != nil {
-		slog.Error("Run", "err", err)
+		slog.Error("RunBackFill", "err", err)
 		return
 	}
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 	<-done
+
+	log.Finish()
 }

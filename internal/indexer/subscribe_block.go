@@ -11,7 +11,7 @@ import (
 	"github.com/hasura/go-graphql-client/pkg/jsonutil"
 )
 
-const timeoutPerURL = time.Second * 5
+const timeoutPerURL = time.Second * 10
 
 type subscribeBlockQuery struct {
 	GetBlocks Block `graphql:" getBlocks(where: {})"`

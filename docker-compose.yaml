@@ -40,8 +40,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,8 +54,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
     depends_on:
       postgres:
         condition: service_healthy

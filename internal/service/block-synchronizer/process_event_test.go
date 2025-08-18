@@ -7,7 +7,7 @@ import (
 	"github.com/yanmoyy/tbi/internal/indexer"
 )
 
-func TestIsValidEvent(t *testing.T) {
+func TestProcessEvent(t *testing.T) {
 	type input struct {
 		event indexer.GnoEvent
 	}
@@ -16,7 +16,7 @@ func TestIsValidEvent(t *testing.T) {
 	}
 
 	tester := func(t *testing.T, input input, expected expected) {
-		err := validateEvent(input.event)
+		_, err := processEvent(input.event)
 		if expected.valid {
 			require.NoError(t, err)
 		} else {

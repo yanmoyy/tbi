@@ -15,11 +15,6 @@ func getTestClient(t *testing.T) *Client {
 	test.CheckDBFlag(t)
 	cfg := config.LoadWithPath("../../.env")
 	cfg.DB.Host = *dbHost
-	t.Logf("Using database host: %s", cfg.DB.Host)
 	c := NewClient(cfg.DB)
-	err := c.ClearAll()
-	if err != nil {
-		t.Fatal(err)
-	}
 	return c
 }

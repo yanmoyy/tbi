@@ -23,5 +23,6 @@ func NewClient(cfg config.DB) *Client {
 }
 
 func (c *Client) ClearAll() error {
-	return c.db.Exec("TRUNCATE TABLE blocks CASCADE").Error
+	const query = /*sql*/ `TRUNCATE TABLE blocks CASCADE; TRUNCATE TABLE transactions CASCADE; TRUNCATE TABLE token_balances CASCADE; TRUNCATE TABLE token_transfers CASCADE;`
+	return c.db.Exec(query).Error
 }

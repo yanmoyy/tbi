@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,17 +18,22 @@ func TestGetLastBlock(t *testing.T) {
 		height   int
 		totalTxs int
 	}
+	ctx := context.Background()
 	tester := func(t *testing.T, i input, e expected) {
-		err := c.ClearAll()
+		err := c.ClearBlocks()
 		require.NoError(t, err)
+
 		if len(i.blocks) != 0 {
-			err = c.CreateBlocks(i.blocks)
+			err = c.CreateBlockList(ctx, i.blocks)
 			require.NoError(t, err)
 		}
-		height, totalTxs, err := c.GetLastBlockInfo()
+		height, totalTxs, err := c.GetLastBlockInfo(ctx)
 		require.NoError(t, err)
 		require.Equal(t, e.height, height)
 		require.Equal(t, e.totalTxs, totalTxs)
+
+		err = c.ClearBlocks()
+		require.NoError(t, err)
 	}
 
 	t.Run("normal case", func(t *testing.T) {

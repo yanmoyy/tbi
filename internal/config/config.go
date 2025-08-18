@@ -8,6 +8,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Config struct {
+	DB      DB
+	GraphQL GraphQL
+	SQS     SQS
+}
 type DB struct {
 	Host     string
 	User     string
@@ -21,9 +26,9 @@ type GraphQL struct {
 	IndexerURLs []string
 }
 
-type Config struct {
-	DB      DB
-	GraphQL GraphQL
+type SQS struct {
+	Endpoint string
+	QueueURL string
 }
 
 func Load() *Config {
@@ -48,6 +53,10 @@ func LoadWithPath(path string) *Config {
 	urls := ensureEnv("GRAPHQL_INDEXER_URLS")
 	indexerURLs := strings.Split(urls, ",")
 
+	// SQS
+	sqsEndpoint := ensureEnv("SQS_ENDPOINT")
+	sqsQueueURL := ensureEnv("SQS_QUEUE_URL")
+
 	return &Config{
 		DB: DB{
 			Host:     dbHost,
@@ -59,6 +68,10 @@ func LoadWithPath(path string) *Config {
 		},
 		GraphQL: GraphQL{
 			IndexerURLs: indexerURLs,
+		},
+		SQS: SQS{
+			Endpoint: sqsEndpoint,
+			QueueURL: sqsQueueURL,
 		},
 	}
 }
