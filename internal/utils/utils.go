@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -40,4 +42,20 @@ func IsBech32(s string) bool {
 	}
 
 	return true
+}
+
+func ExtractGRC20TokenPath(token string) (string, error) {
+	parts := strings.Split(token, ":")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid token format: %s, expected {tokenPath}:{symbol}", token)
+	}
+	tokenPath := parts[0]
+	symbol := parts[1]
+	if tokenPath == "" || symbol == "" {
+		return "", fmt.Errorf("tokenPath or symbol empty in token: %s", token)
+	}
+	if !regexp.MustCompile(`^gno\.land/r/[\w-]+/[\w-]+$`).MatchString(tokenPath) {
+		return "", fmt.Errorf("invalid tokenPath format: %s", tokenPath)
+	}
+	return tokenPath, nil
 }

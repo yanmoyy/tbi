@@ -43,6 +43,10 @@ func TestProcessEvent(t *testing.T) {
 						Key:   "value",
 						Value: "100000000000000",
 					},
+					{
+						Key:   "token",
+						Value: "gno.land/r/demo/wugnot:wugnot",
+					},
 				},
 			},
 		}, expected{
@@ -65,6 +69,10 @@ func TestProcessEvent(t *testing.T) {
 					{
 						Key:   "value",
 						Value: "100000000000000",
+					},
+					{
+						Key:   "token",
+						Value: "gno.land/r/demo/wugnot:wugnot",
 					},
 				},
 			},
@@ -92,6 +100,10 @@ func TestProcessEvent(t *testing.T) {
 						Key:   "value",
 						Value: "100000000000000",
 					},
+					{
+						Key:   "token",
+						Value: "gno.land/r/demo/wugnot:wugnot",
+					},
 				},
 			},
 		}, expected{
@@ -115,6 +127,10 @@ func TestProcessEvent(t *testing.T) {
 					{
 						Key:   "value",
 						Value: "100000000000000",
+					},
+					{
+						Key:   "token",
+						Value: "gno.land/r/demo/wugnot:wugnot",
 					},
 				},
 			},
@@ -142,6 +158,10 @@ func TestProcessEvent(t *testing.T) {
 						Key:   "value",
 						Value: "100000000000000",
 					},
+					{
+						Key:   "token",
+						Value: "gno.land/r/demo/wugnot:wugnot",
+					},
 				},
 			},
 		}, expected{
@@ -164,6 +184,10 @@ func TestProcessEvent(t *testing.T) {
 					{
 						Key:   "value",
 						Value: "",
+					},
+					{
+						Key:   "token",
+						Value: "gno.land/r/demo/wugnot:wugnot",
 					},
 				},
 			},

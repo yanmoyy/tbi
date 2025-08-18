@@ -9,6 +9,12 @@ var testDB = flag.Bool("test.db", false, "run database tests")
 var testSQS = flag.Bool("test.sqs", false, "run SQS tests")
 var testIndexer = flag.Bool("test.indexer", false, "run indexer tests")
 
+// Just for importing test package to avoid flag.Parse() in every test
+func NoFlag(t *testing.T) {
+	flag.Parse()
+	t.Helper()
+}
+
 // WARNING: DB tests should be run with testing environment
 func CheckDBFlag(t *testing.T) {
 	flag.Parse()
@@ -18,6 +24,7 @@ func CheckDBFlag(t *testing.T) {
 	}
 }
 
+// WARNING: SQS tests should be run with testing environment
 func CheckSQSFlag(t *testing.T) {
 	flag.Parse()
 	t.Helper()

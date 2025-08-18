@@ -30,7 +30,7 @@ func (s *Service) Run(ctx context.Context) error {
 }
 
 func (s *Service) startListening(ctx context.Context) error {
-	const pollInterval = 1 * time.Second
+	const pollInterval = 3 * time.Second
 	for {
 		select {
 		case <-ctx.Done():
@@ -74,26 +74,27 @@ func (s *Service) processMessages(ctx context.Context, msgs []sqs.Message) error
 
 // handleEvent processes a single event and updates the database
 func (s *Service) handleEvent(ctx context.Context, evt models.TransferEvent) error {
+	slog.Info("Handling Event...", "event", evt)
 	switch evt.Func {
 	case models.Mint:
-		err := s.db.UpdateTokenBalance(ctx, evt.To, evt.PkgPath, evt.Value, true)
+		err := s.db.UpdateTokenBalance(ctx, evt.To, evt.TokenPath, evt.Value, true)
 		if err != nil {
 			return fmt.Errorf("UpdateTokenBalance(Mint): %w", err)
 		}
 	case models.Burn:
-		err := s.db.UpdateTokenBalance(ctx, evt.From, evt.PkgPath, evt.Value, false)
+		err := s.db.UpdateTokenBalance(ctx, evt.From, evt.TokenPath, evt.Value, false)
 		if err != nil {
 			return fmt.Errorf("UpdateTokenBalance(Burn): %w", err)
 		}
 	case models.Transfer:
-		err := s.db.TransferTokenBalance(ctx, evt.From, evt.To, evt.PkgPath, evt.Value)
+		err := s.db.TransferTokenBalance(ctx, evt.From, evt.To, evt.TokenPath, evt.Value)
 		if err != nil {
 			return fmt.Errorf("TransferTokenBalance: %w", err)
 		}
 		err = s.db.CreateTokenTransfer(ctx, models.TokenTransfer{
 			FromAddress: evt.From,
 			ToAddress:   evt.To,
-			TokenPath:   evt.PkgPath,
+			TokenPath:   evt.TokenPath,
 			Amount:      evt.Value,
 		})
 		if err != nil {

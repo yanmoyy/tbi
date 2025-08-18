@@ -233,13 +233,15 @@ func (s *Service) processEvents(ctx context.Context, transactions []indexer.Tran
 			if event.GnoEvent.Type != "Transfer" {
 				continue
 			}
-			slog.Info("Transfer Event found! sending to SQS")
-
+			slog.Info("Transfer Event found!")
 			evt, err := processEvent(event.GnoEvent)
 			if err != nil {
 				slog.Error("processEvent", "err", err)
 				break
 			}
+
+			slog.Info("Valid Event found!, sending to SQS...")
+
 			msgBody, err := json.Marshal(evt)
 			if err != nil {
 				slog.Error("json.Marshal", "err", err)

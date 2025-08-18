@@ -57,9 +57,9 @@ const (
 )
 
 type TransferEvent struct {
-	Func    EventFunc `json:"func"`
-	PkgPath string    `json:"pkg_path"`
-	From    string    `json:"from"`
-	To      string    `json:"to"`
-	Value   int64     `json:"value"`
+	Func      EventFunc `json:"func"`
+	TokenPath string    `json:"token"`
+	From      string    `json:"from"`
+	To        string    `json:"to"`
+	Value     int64     `json:"value"`
 }

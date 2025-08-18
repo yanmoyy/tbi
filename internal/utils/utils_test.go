@@ -4,9 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/yanmoyy/tbi/internal/test"
 )
 
 func TestIsNumeric(t *testing.T) {
+	test.NoFlag(t) // disable flag
 	type input struct {
 		s string
 	}
@@ -59,4 +61,34 @@ func TestIsBech32(t *testing.T) {
 	tester(t, input{""}, expected{false})
 	tester(t, input{"a1asdfsdfsdfasdfwqefqwfwqd"}, expected{false})
 	tester(t, input{"g1asdf"}, expected{false})
+}
+
+func TestExtractGRC20TokenPath(t *testing.T) {
+	type input struct {
+		token string
+	}
+	type expected struct {
+		tokenPath string
+		isErr     bool
+	}
+
+	tester := func(t *testing.T, input input, expected expected) {
+		t.Log(input.token)
+		tokenPath, err := ExtractGRC20TokenPath(input.token)
+		if expected.isErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, expected.tokenPath, tokenPath)
+		}
+	}
+
+	tester(t, input{"gno.land/r/demo/wugnot:wugnot"},
+		expected{tokenPath: "gno.land/r/demo/wugnot", isErr: false})
+	tester(t, input{"gno.land/r/demo/wugnot"},
+		expected{tokenPath: "", isErr: true})
+	tester(t, input{"wugnot:wugnot"},
+		expected{tokenPath: "", isErr: true})
+	tester(t, input{"wugnot"},
+		expected{tokenPath: "", isErr: true})
 }
