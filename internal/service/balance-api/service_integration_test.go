@@ -26,8 +26,6 @@ func getTestDBClient(t *testing.T) *database.Client {
 
 func getTestService(t *testing.T) *Service {
 	t.Helper()
-	test.CheckAPIFlag(t)
-
 	// Initialize Gin router
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
@@ -42,6 +40,7 @@ func getTestService(t *testing.T) *Service {
 	svc.setupRoutes()
 	return svc
 }
+
 func setupDatasets(t *testing.T, s *Service) {
 	balances := []models.TokenBalance{
 		{
@@ -84,7 +83,6 @@ func setupDatasets(t *testing.T, s *Service) {
 }
 
 func TestAPIService(t *testing.T) {
-
 	s := getTestService(t)
 	clear := func() {
 		err := s.db.ClearAll()
