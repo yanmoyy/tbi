@@ -236,8 +236,8 @@ func (s *Service) processEvents(ctx context.Context, transactions []indexer.Tran
 			slog.Info("Transfer Event found!")
 			evt, err := processEvent(event.GnoEvent)
 			if err != nil {
-				slog.Error("processEvent", "err", err)
-				break
+				slog.Debug("invalid event", "reason", err)
+				continue
 			}
 
 			slog.Info("Valid Event found!, sending to SQS...")
@@ -245,7 +245,7 @@ func (s *Service) processEvents(ctx context.Context, transactions []indexer.Tran
 			msgBody, err := json.Marshal(evt)
 			if err != nil {
 				slog.Error("json.Marshal", "err", err)
-				break
+				continue
 			}
 			err = s.sqs.SendMessage(ctx, sqs.Message{
 				Body:      string(msgBody),
@@ -253,7 +253,7 @@ func (s *Service) processEvents(ctx context.Context, transactions []indexer.Tran
 			})
 			if err != nil {
 				slog.Error("SendMessage", "err", err)
-				break
+				continue
 			}
 		}
 	}
