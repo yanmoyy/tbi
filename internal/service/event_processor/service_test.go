@@ -29,7 +29,7 @@ func TestProcessMessages(t *testing.T) {
 	clear := func() {
 		err := s.db.ClearTokenBalances()
 		require.NoError(t, err)
-		err = s.db.ClearTransactions()
+		err = s.db.ClearTokenTransfers()
 		require.NoError(t, err)
 	}
 

@@ -10,10 +10,14 @@ func (c *Client) CreateTokenTransfer(ctx context.Context, transfer models.TokenT
 	return c.db.WithContext(ctx).Create(&transfer).Error
 }
 
+func (c *Client) CreateTokenTransferList(ctx context.Context, transfers []models.TokenTransfer) error {
+	return c.db.WithContext(ctx).Create(&transfers).Error
+}
+
 func (c *Client) GetTokenTransferList(ctx context.Context) ([]models.TokenTransfer, error) {
 	var history []models.TokenTransfer
 	err := c.db.WithContext(ctx).
-		Order("id DESC").
+		Order("id ASC").
 		Find(&history).
 		Error
 	return history, err

@@ -23,6 +23,23 @@ func NewClient(cfg config.DB) *Client {
 }
 
 func (c *Client) ClearAll() error {
-	const query = /*sql*/ `TRUNCATE TABLE blocks CASCADE; TRUNCATE TABLE transactions CASCADE; TRUNCATE TABLE token_balances CASCADE; TRUNCATE TABLE token_transfers CASCADE;`
-	return c.db.Exec(query).Error
+	return c.db.Transaction(func(tx *gorm.DB) error {
+		err := c.ClearBlocks()
+		if err != nil {
+			return err
+		}
+		err = c.ClearTransactions()
+		if err != nil {
+			return err
+		}
+		err = c.ClearTokenBalances()
+		if err != nil {
+			return err
+		}
+		err = c.ClearTokenTransfers()
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }

@@ -58,6 +58,10 @@ func (c *Client) CreateTokenBalance(ctx context.Context, address string, tokenPa
 		}).Error
 }
 
+func (c *Client) CreateTokenBalanceList(ctx context.Context, balances []models.TokenBalance) error {
+	return c.db.WithContext(ctx).Create(&balances).Error
+}
+
 func (c *Client) GetTokenBalance(ctx context.Context, address string, tokenPath string) (models.TokenBalance, error) {
 	var balance models.TokenBalance
 	err := c.db.WithContext(ctx).

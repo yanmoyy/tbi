@@ -12,6 +12,7 @@ type Config struct {
 	DB      DB
 	GraphQL GraphQL
 	SQS     SQS
+	API     API
 }
 type DB struct {
 	Host     string
@@ -29,6 +30,10 @@ type GraphQL struct {
 type SQS struct {
 	Endpoint string
 	QueueURL string
+}
+
+type API struct {
+	Port string
 }
 
 func Load() *Config {
@@ -57,6 +62,9 @@ func LoadWithPath(path string) *Config {
 	sqsEndpoint := ensureEnv("SQS_ENDPOINT")
 	sqsQueueURL := ensureEnv("SQS_QUEUE_URL")
 
+	// API
+	apiPort := ensureEnv("API_PORT")
+
 	return &Config{
 		DB: DB{
 			Host:     dbHost,
@@ -72,6 +80,9 @@ func LoadWithPath(path string) *Config {
 		SQS: SQS{
 			Endpoint: sqsEndpoint,
 			QueueURL: sqsQueueURL,
+		},
+		API: API{
+			Port: apiPort,
 		},
 	}
 }
